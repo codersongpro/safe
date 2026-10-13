@@ -4,7 +4,7 @@
   var ROOMS = window.ROOMS;
   var PLEDGES = window.PLEDGES;
   var CODE = ROOMS.filter(function (r) { return r.letter; }).map(function (r) { return r.letter; }).join('');
-  var STORE_KEY = 'safety-escape-kids-v1';
+  var STORE_KEY = 'safety-escape-kids-v2';
   var app = document.getElementById('app');
   var keyBar = document.getElementById('keyBar');
 
@@ -78,7 +78,7 @@
         h('div', { class: 'hero-icon', 'aria-hidden': 'true' }, ['🗝️']),
         h('p', { class: 'eyebrow', text: '현장체험학습 · 수학여행 사전 안전교육' }),
         h('h1', { text: '안전 탐험대 방탈출' }),
-        h('p', { class: 'lead', text: '체험학습 날, 6개의 방이 잠겨 버렸어요! 방마다 안전 문제를 풀고 열쇠 글자를 모아 마지막 문을 열어 보세요.' }),
+        h('p', { class: 'lead', text: '체험학습 날, ' + ROOMS.length + '개의 방이 잠겨 버렸어요! 방마다 안전 문제를 풀고 열쇠 글자를 모아 마지막 문을 열어 보세요.' }),
         h('ul', { class: 'how' }, [
           h('li', null, [h('b', { text: '① ' }), '방을 차례로 열고 문제 3개를 풀어요.']),
           h('li', null, [h('b', { text: '② ' }), '틀려도 괜찮아요. 힌트를 보고 다시 도전해요.']),
@@ -468,7 +468,7 @@
       h('section', { class: 'panel lock' }, [
         h('div', { class: 'story-icon', 'aria-hidden': 'true' }, ['🔐']),
         h('h2', { text: '마지막 자물쇠' }),
-        h('p', { class: 'lead', text: '방 1번부터 5번까지 모은 열쇠 글자를 순서대로 눌러 비밀번호를 완성하세요. (가짜 글자도 섞여 있어요!)' }),
+        h('p', { class: 'lead', text: '방 1번부터 ' + CODE.length + '번까지 모은 열쇠 글자를 순서대로 눌러 비밀번호를 완성하세요. (가짜 글자도 섞여 있어요!)' }),
         slots,
         tiles,
         msg,
@@ -516,7 +516,7 @@
           nameOut
         ]),
         h('label', { class: 'field no-print' }, [h('span', { text: '수료증에 들어갈 이름' }), nameInput]),
-        h('p', { class: 'cert-body', text: '위 탐험대원은 현장체험학습 사전 안전교육 방탈출 6개 방을 모두 통과하고, 안전한 체험학습을 위한 약속을 다짐하였기에 이 수료증을 드립니다.' }),
+        h('p', { class: 'cert-body', text: '위 탐험대원은 현장체험학습 사전 안전교육 방탈출 ' + ROOMS.length + '개 방을 모두 통과하고, 안전한 체험학습을 위한 약속을 다짐하였기에 이 수료증을 드립니다.' }),
         h('p', { class: 'stars', text: '획득한 별 ' + totalStars() + ' / ' + ROOMS.length * 3 }),
         h('h3', { text: '나의 안전 다짐' }),
         pledgeList,
