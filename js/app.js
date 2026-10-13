@@ -149,6 +149,7 @@
     if (q.type === 'ox') body = buildOX(q, feedback);
     else if (q.type === 'choice') body = buildChoice(q, feedback);
     else if (q.type === 'multi') body = buildMulti(q, feedback);
+    else if (q.type === 'spot') body = buildSpot(q, feedback);
     else body = buildOrder(q, feedback);
 
     var progress = h('div', { class: 'progress', 'aria-label': '문제 진행' },
@@ -178,7 +179,7 @@
   }
 
   function typeGuide(q) {
-    var t = { ox: 'O 또는 X를 골라요', choice: '알맞은 답 하나를 골라요', multi: '정답을 모두 고른 뒤 [확인]을 눌러요', order: '순서대로 하나씩 눌러요' }[q.type];
+    var t = { ox: 'O 또는 X를 골라요', choice: '알맞은 답 하나를 골라요', multi: '정답을 모두 고른 뒤 [확인]을 눌러요', order: '순서대로 하나씩 눌러요', spot: '그림 속 친구를 누르고 ⭕ 안전해요 / ❌ 위험해요 중에서 골라요' }[q.type];
     return h('p', { class: 'guide', text: t });
   }
 
@@ -267,6 +268,90 @@
       wrap.appendChild(b);
     });
     return wrap;
+  }
+
+  function buildSpot(q, fb) {
+    var found = {};
+    var total = q.spots.length;
+    var dangerCount = q.spots.filter(function (s) { return !s.safe; }).length;
+    var counter = h('p', { class: 'spot-count', 'aria-live': 'polite' });
+    var img = h('img', { src: q.img, alt: q.alt, draggable: 'false' });
+    var stage = h('div', { class: 'spot-stage' }, [img]);
+    var popup = null;
+    var list = h('ul', { class: 'spot-list' });
+
+    function updateCount() {
+      var n = Object.keys(found).length;
+      counter.textContent = '찾은 곳 ' + n + ' / ' + total + '  (❌ 위험 ' + dangerCount + ' · ⭕ 안전 ' + (total - dangerCount) + ')';
+    }
+    function closePopup() {
+      if (popup) { popup.remove(); popup = null; }
+    }
+    function hitTest(px, py) {
+      var best = -1, area = Infinity;
+      q.spots.forEach(function (s, i) {
+        if (px >= s.x && px <= s.x + s.w && py >= s.y && py <= s.y + s.h && s.w * s.h < area) {
+          best = i; area = s.w * s.h;
+        }
+      });
+      return best;
+    }
+    function mark(i) {
+      var s = q.spots[i];
+      stage.appendChild(h('div', {
+        class: 'spot-box ' + (s.safe ? 'safe' : 'danger'),
+        style: 'left:' + s.x + '%;top:' + s.y + '%;width:' + s.w + '%;height:' + s.h + '%'
+      }, [h('span', { class: 'spot-badge', 'aria-hidden': 'true', text: s.safe ? '⭕' : '❌' })]));
+      list.appendChild(h('li', { class: s.safe ? 'safe' : 'danger' }, [(s.safe ? '⭕ ' : '❌ ') + s.label]));
+    }
+    function answer(i, saysSafe) {
+      var s = q.spots[i];
+      closePopup();
+      if (saysSafe !== s.safe) {
+        judge(false, q, fb, null, stage, null, '그 친구의 행동을 다시 살펴보세요.');
+        return;
+      }
+      found[i] = true;
+      mark(i);
+      updateCount();
+      if (Object.keys(found).length === total) {
+        stage.classList.add('done');
+        judge(true, q, fb, null, stage);
+      } else {
+        fb.className = 'feedback ' + (s.safe ? 'good' : 'bad');
+        fb.innerHTML = '';
+        fb.appendChild(h('p', null, [h('b', { text: (s.safe ? '⭕ 안전해요! ' : '❌ 위험해요! ') }), s.label + ' — ' + s.why]));
+      }
+    }
+
+    stage.addEventListener('click', function (e) {
+      if (e.target.closest('.spot-pop') || stage.classList.contains('done')) return;
+      closePopup();
+      var rect = stage.getBoundingClientRect();
+      var px = (e.clientX - rect.left) / rect.width * 100;
+      var py = (e.clientY - rect.top) / rect.height * 100;
+      var i = hitTest(px, py);
+      if (i < 0) {
+        fb.className = 'feedback';
+        fb.textContent = '🔍 여기에는 찾을 것이 없어요. 친구들의 행동을 눌러 보세요.';
+        return;
+      }
+      if (found[i]) return;
+      var left = Math.min(Math.max(px, 22), 78);
+      popup = h('div', {
+        class: 'spot-pop' + (py > 62 ? ' up' : ''),
+        style: 'left:' + left + '%;top:' + py + '%',
+        role: 'dialog', 'aria-label': '안전한지 위험한지 고르기'
+      }, [
+        h('button', { class: 'pop-btn safe', type: 'button', onclick: function () { answer(i, true); } }, ['⭕ 안전해요']),
+        h('button', { class: 'pop-btn danger', type: 'button', onclick: function () { answer(i, false); } }, ['❌ 위험해요'])
+      ]);
+      stage.appendChild(popup);
+      popup.querySelector('button').focus();
+    });
+
+    updateCount();
+    return h('div', { class: 'spot-wrap' }, [counter, stage, list]);
   }
 
   function judge(ok, q, fb, btn, wrap, extraBtn, wrongMsg) {
